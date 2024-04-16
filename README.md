@@ -1,6 +1,6 @@
 # ARC Log Collection Scripts
 
-ARC Log Collection Scripts is a collection of Shell scripts to dump diagnostic information and logs from your ARC deployment. 
+ARC Log Collection Scripts is a collection of Shell scripts to dump diagnostic information and logs from your [Actions Runner Controller](https://github.com/actions/actions-runner-controller) deployment. 
 
 - [`bundle.sh`](bundle.sh) collects logs from the ARC components and runner pods.
 - [`runner-monitor.sh`](runner-monitor.sh) monitors and collects logs from the runner pods until the monitor script is killed.
