@@ -7,7 +7,7 @@ ARC Log Collection Scripts is a collection of Shell scripts to dump diagnostic i
 
 ## Anatomy of the ARC Log Bundle
 
-A key output of the ARC log bundle is the `bundle.md` file, which contains a summary of the ARC deployment, metrics, and logs from _ALL_ pods.
+A key output of the ARC log bundle is the `bundle.md` file, which contains a summary of the ARC deployment, metrics, and logs from _ALL_ pods, including non-ARC pods.
 
 The ARC Log Bundle consists of the following components:
 
@@ -32,7 +32,7 @@ The Runner Monitor Log Directory consists of the following components:
 
 ## Privacy
 
-The ARC bundle logs collect logs from _ALL_ pods in your ARC deployment because [GitHub recommends deploying ARC in a dedicated cluster](https://docs.github.com/en/enterprise-cloud@latest/actions/hosting-your-own-runners/managing-self-hosted-runners-with-actions-runner-controller/deploying-runner-scale-sets-with-actions-runner-controller#deploying-a-runner-scale-set). 
+The ARC bundle logs collect logs from _ALL_ pods, including non-ARC pods, in your ARC deployment because [GitHub recommends deploying ARC in a dedicated cluster](https://docs.github.com/en/enterprise-cloud@latest/actions/hosting-your-own-runners/managing-self-hosted-runners-with-actions-runner-controller/deploying-runner-scale-sets-with-actions-runner-controller#deploying-a-runner-scale-set). 
 
 If you have deployed ARC in a shared cluster, the logs may contain sensitive information from other workloads. It is your responsiblity to review the logs before sharing them with others, including GitHub. 
 
