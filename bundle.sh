@@ -86,7 +86,7 @@ do
     esac
 done
 
-# kubectl top
+# CLUSTER RESOURCE INFO
 echo -e "## kubectl top\n" 2>&1 | tee -a $LOGS_FILE
 echo -e "### Nodes\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
@@ -100,36 +100,40 @@ kubectl top pods -A 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo | tee -a $LOGS_FILE
 
-# helm ls
-echo -e "## Listing all helm releases in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
-echo '```' >> $LOGS_FILE
-echo -e "\$ helm ls --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
-helm ls --all-namespaces 2>&1 | tee -a $LOGS_FILE
-echo '```' >> $LOGS_FILE
-
-# kubectl get customresourcedefinition
+# CUSTOM RESOURCE DEFINITIONS
 echo -e "\n## Listing all CRDs\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo -e "\$ kubectl get customresourcedefinition\n" 2>&1 | tee -a $LOGS_FILE
 kubectl get customresourcedefinition 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# kubectl get pods --all-namespaces
+# LIST ALL PODS IN ALL NAMESPACES
 echo -e "\n## Listing all pods in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo -e "\$ kubectl get pods --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
 kubectl get pods --all-namespaces 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# kubectl get deployments --all-namespaces
+# LIST ALL DEPLOYMENTS IN ALL NAMESPACES
 echo -e "\n## Listing all deployments in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo -e "\$ kubectl get deployments --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
 kubectl get deployments --all-namespaces 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# helm ls --all-namespaces
-# List helm releases for Runner Scale Sets and Runner Scale Set Controllers
+# WRITE KUBECTL EVENT LOG
+echo -e "\n## Listing kubernetes events\n" 2>&1 | tee -a $LOGS_FILE
+echo "'\`\$\ kubectl events --all-namespaces > ${LOGS_DIR}/kubectl-events.log\`" >> $LOGS_FILE
+kubectl events --all-namespaces 2>&1 > ${LOGS_DIR}/kubectl-events.log
+
+# HELM RELEASE INFO
+echo -e "## Listing all helm releases in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
+echo '```' >> $LOGS_FILE
+echo -e "\$ helm ls --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
+helm ls --all-namespaces 2>&1 | tee -a $LOGS_FILE
+echo '```' >> $LOGS_FILE
+
+# LIST ALL HELM RELEASES FOR ARC COMPONENTS ONLY
 echo -e "\n## Listing Helm Releases for Runner Scale Sets\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo -e "\$ helm ls --all-namespaces | awk 'NR==1 || /gha-runner-scale-set-[0-9]*\.[0-9]\.[0-9]*/'\n" 2>&1 | tee -a $LOGS_FILE
@@ -141,25 +145,9 @@ echo -e "\$ helm ls --all-namespaces | awk 'NR==1 || /gha-runner-scale-set-contr
 helm ls --all-namespaces | awk 'NR==1 || /gha-runner-scale-set-controller-[0-9]*\.[0-9]\.[0-9]*/' 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# kubectl get ephemeralrunners --all-namespaces
-echo -e "\n## Polling \`ephemeralrunner\` Pods (${DELAY}s x ${POLL_COUNT})\n" 2>&1 | tee -a $LOGS_FILE
-if [ ${POLL_COUNT} -le 0 -o ${DELAY} -le 0 ]; then
-    echo "Skipping polling of ephemeralrunner pods because POLL_COUNT or DELAY is set to 0." 2>&1 | tee -a $LOGS_FILE
-else
-  for i in $(seq 1 $POLL_COUNT); do
-      echo -e "### Listing ephemeral runner pods ($i/$POLL_COUNT at $(date -u)):\n" 2>&1 | tee -a $LOGS_FILE
-      echo '```' >> $LOGS_FILE
-      echo -e "\$ kubectl get ephemeralrunners --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
-      kubectl get ephemeralrunners --all-namespaces 2>&1 2>&1 | tee -a $LOGS_FILE
-      echo '```' >> $LOGS_FILE
-      echo | tee -a $LOGS_FILE
-      sleep $DELAY
-  done
-fi
-
+# HELM RELEASE INFO FOR RUNNER SCALE SETS
 echo -e "\n## Collecting Helm Release Information for Runner Scale Sets\n" 2>&1 | tee -a $LOGS_FILE
 runner_releases=$(helm ls --all-namespaces | awk '/gha-runner-scale-set-[0-9]*\.[0-9]\.[0-9]*/')
-
 echo "$runner_releases" | while IFS= read -r release; do
   runner_name=$(echo $release | awk '{print $1}')
   runner_namespace=$(echo $release | awk '{print $2}')
@@ -173,6 +161,7 @@ echo "$runner_releases" | while IFS= read -r release; do
   helm get all ${runner_name} -n ${runner_namespace} | sed -e 's/\(github_token:\).*/\1 REDACTED/' -e 's/\(github_app_private_key:\).*/\1 REDACTED/' > ${all_file}
 done
 
+# HELM RELEASE INFO FOR RUNNER CONTROLLERS
 echo -e "\n## Collecting Helm Release Information for Runner Controllers\n" 2>&1 | tee -a $LOGS_FILE
 controller_releases=$(helm ls --all-namespaces | awk '/gha-runner-scale-set-controller-[0-9]*\.[0-9]\.[0-9]*/')
 echo "$controller_releases" | while IFS= read -r release; do
@@ -188,7 +177,26 @@ echo "$controller_releases" | while IFS= read -r release; do
   helm get all ${controller_name} -n ${controller_namespace} | sed -e 's/\(github_token:\).*/\1 REDACTED/' -e 's/\(github_app_private_key:\).*/\1 REDACTED/' > ${all_file}
 done
 
+# POLL EPHEMERAL RUNNER PODS IN ALL NAMESPACES
+echo -e "\n## Polling \`ephemeralrunner\` Pods (${DELAY}s x ${POLL_COUNT})\n" 2>&1 | tee -a $LOGS_FILE
+if [ ${POLL_COUNT} -le 0 -o ${DELAY} -le 0 ]; then
+    echo "Skipping polling of ephemeralrunner pods because POLL_COUNT or DELAY is set to 0." 2>&1 | tee -a $LOGS_FILE
+else
+  for i in $(seq 1 $POLL_COUNT); do
+      echo -e "### Listing ephemeral runner pods ($i/$POLL_COUNT at $(date -u)):\n" 2>&1 | tee -a $LOGS_FILE
+      echo '```' >> $LOGS_FILE
+      echo -e "\$ kubectl get ephemeralrunners --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
+      kubectl get ephemeralrunners --all-namespaces 2>&1 2>&1 | tee -a $LOGS_FILE
+      echo '```' >> $LOGS_FILE
+      echo | tee -a $LOGS_FILE
+      sleep $DELAY
+  done
+fi
+
+# LOG COLLECTION
 echo -e "\n## Writing logs for pods" 2>&1 | tee -a $LOGS_FILE
+
+# WRITE LOGS FOR RUNNER PODS
 echo -e "\n### Writing logs for runner pods" 2>&1 | tee -a $LOGS_FILE
 # Get a list of all runner pods
 runner_pods=$(kubectl get ephemeralrunners --all-namespaces -o jsonpath="{.items[*].metadata.name}")
@@ -244,6 +252,7 @@ for pod in $runner_pods; do
   continue
 done
 
+# WRITE LOGS FOR ALL PODS IN ALL NAMESPACES
 echo -e "\n### Writing logs for all pods in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
 # Get a list of all namespaces
 namespaces=$(kubectl get ns -o jsonpath="{.items[*].metadata.name}")
