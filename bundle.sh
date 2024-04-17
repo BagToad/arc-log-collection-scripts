@@ -86,82 +86,82 @@ do
     esac
 done
 
-# kubectl top
+# CLUSTER RESOURCE INFO
 echo -e "## kubectl top\n" 2>&1 | tee -a $LOGS_FILE
 echo -e "### Nodes\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
+echo -e "\$ kubectl top nodes\n" 2>&1 | tee -a $LOGS_FILE
 kubectl top nodes 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo -e "\n#### Pods\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
+echo -e "\$ kubectl top pods -A\n" 2>&1 | tee -a $LOGS_FILE
 kubectl top pods -A 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo | tee -a $LOGS_FILE
 
-# helm ls
-echo -e "## Listing all helm releases in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
-echo '```' >> $LOGS_FILE
-helm ls --all-namespaces 2>&1 | tee -a $LOGS_FILE
-echo '```' >> $LOGS_FILE
-
-# kubectl get customresourcedefinition
+# CUSTOM RESOURCE DEFINITIONS
 echo -e "\n## Listing all CRDs\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
+echo -e "\$ kubectl get customresourcedefinition\n" 2>&1 | tee -a $LOGS_FILE
 kubectl get customresourcedefinition 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# kubectl get pods --all-namespaces
+# LIST ALL PODS IN ALL NAMESPACES
 echo -e "\n## Listing all pods in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
+echo -e "\$ kubectl get pods --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
 kubectl get pods --all-namespaces 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# kubectl get deployments --all-namespaces
+# LIST ALL DEPLOYMENTS IN ALL NAMESPACES
 echo -e "\n## Listing all deployments in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
+echo -e "\$ kubectl get deployments --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
 kubectl get deployments --all-namespaces 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# helm ls --all-namespaces
-# List helm releases for Runner Scale Sets and Runner Scale Set Controllers
+# WRITE KUBECTL EVENT LOG
+echo -e "\n## Listing kubernetes events\n" 2>&1 | tee -a $LOGS_FILE
+echo "'\`\$\ kubectl events --all-namespaces > ${LOGS_DIR}/kubectl-events.log\`" >> $LOGS_FILE
+kubectl events --all-namespaces 2>&1 > ${LOGS_DIR}/kubectl-events.log
+
+# HELM RELEASE INFO
+echo -e "## Listing all helm releases in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
+echo '```' >> $LOGS_FILE
+echo -e "\$ helm ls --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
+helm ls --all-namespaces 2>&1 | tee -a $LOGS_FILE
+echo '```' >> $LOGS_FILE
+
+# LIST ALL HELM RELEASES FOR ARC COMPONENTS ONLY
 echo -e "\n## Listing Helm Releases for Runner Scale Sets\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
+echo -e "\$ helm ls --all-namespaces | awk 'NR==1 || /gha-runner-scale-set-[0-9]*\.[0-9]\.[0-9]*/'\n" 2>&1 | tee -a $LOGS_FILE
 helm ls --all-namespaces | awk 'NR==1 || /gha-runner-scale-set-[0-9]*\.[0-9]\.[0-9]*/' 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 echo -e "\n## Listing Helm releases for Runner Scale Set Controllers\n" 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
+echo -e "\$ helm ls --all-namespaces | awk 'NR==1 || /gha-runner-scale-set-controller-[0-9]*\.[0-9]\.[0-9]*/'\n" 2>&1 | tee -a $LOGS_FILE
 helm ls --all-namespaces | awk 'NR==1 || /gha-runner-scale-set-controller-[0-9]*\.[0-9]\.[0-9]*/' 2>&1 | tee -a $LOGS_FILE
 echo '```' >> $LOGS_FILE
 
-# kubectl get ephemeralrunners --all-namespaces
-echo -e "\n## Polling \`ephemeralrunner\` Pods (${DELAY}s x ${POLL_COUNT})\n" 2>&1 | tee -a $LOGS_FILE
-if [ ${POLL_COUNT} -le 0 -o ${DELAY} -le 0 ]; then
-    echo "Skipping polling of ephemeralrunner pods because POLL_COUNT or DELAY is set to 0." 2>&1 | tee -a $LOGS_FILE
-else
-  for i in $(seq 1 $POLL_COUNT); do
-      echo -e "### Listing ephemeral runner pods ($i/$POLL_COUNT at $(date -u)):\n" 2>&1 | tee -a $LOGS_FILE
-      echo '```' >> $LOGS_FILE
-      kubectl get ephemeralrunners --all-namespaces 2>&1 2>&1 | tee -a $LOGS_FILE
-      echo '```' >> $LOGS_FILE
-      echo | tee -a $LOGS_FILE
-      sleep $DELAY
-  done
-fi
-
+# HELM RELEASE INFO FOR RUNNER SCALE SETS
 echo -e "\n## Collecting Helm Release Information for Runner Scale Sets\n" 2>&1 | tee -a $LOGS_FILE
 runner_releases=$(helm ls --all-namespaces | awk '/gha-runner-scale-set-[0-9]*\.[0-9]\.[0-9]*/')
-
 echo "$runner_releases" | while IFS= read -r release; do
   runner_name=$(echo $release | awk '{print $1}')
   runner_namespace=$(echo $release | awk '{print $2}')
   values_file=${HELM_INFO_DIR}/${runner_name}_NS_${runner_namespace}_values.yaml
   all_file=${HELM_INFO_DIR}/${runner_name}_NS_${runner_namespace}_all.yaml
   echo -e "Writing \`${values_file}\`...\n" 2>&1 | tee -a $LOGS_FILE
+  echo -e "\`\$ helm get values ${runner_name} -n ${runner_namespace}\`\n" 2>&1 | tee -a $LOGS_FILE
   helm get values ${runner_name} -n ${runner_namespace} | sed -e 's/\(github_token:\).*/\1 REDACTED/' -e 's/\(github_app_private_key:\).*/\1 REDACTED/' > ${values_file}
   echo -e "Writing \`${all_file}\`...\n" 2>&1 | tee -a $LOGS_FILE
+  echo -e "\`\$ helm get all ${runner_name} -n ${runner_namespace}\`\n" 2>&1 | tee -a $LOGS_FILE
   helm get all ${runner_name} -n ${runner_namespace} | sed -e 's/\(github_token:\).*/\1 REDACTED/' -e 's/\(github_app_private_key:\).*/\1 REDACTED/' > ${all_file}
 done
 
+# HELM RELEASE INFO FOR RUNNER CONTROLLERS
 echo -e "\n## Collecting Helm Release Information for Runner Controllers\n" 2>&1 | tee -a $LOGS_FILE
 controller_releases=$(helm ls --all-namespaces | awk '/gha-runner-scale-set-controller-[0-9]*\.[0-9]\.[0-9]*/')
 echo "$controller_releases" | while IFS= read -r release; do
@@ -170,12 +170,33 @@ echo "$controller_releases" | while IFS= read -r release; do
   values_file=${HELM_INFO_DIR}/${controller_name}_NS-${controller_namespace}_values.yaml
   all_file=${HELM_INFO_DIR}/${controller_name}_NS-${controller_namespace}_all.yaml
   echo -e "Writing \`${values_file}\`...\n" 2>&1 | tee -a $LOGS_FILE
+  echo -e "\`\$ helm get values ${controller_name} -n ${controller_namespace}\`\n" 2>&1 | tee -a $LOGS_FILE
   helm get values ${controller_name} -n ${controller_namespace} | sed -e 's/\(github_token:\).*/\1 REDACTED/' -e 's/\(github_app_private_key:\).*/\1 REDACTED/' > ${values_file}
   echo -e "Writing \`${all_file}\`...\n" 2>&1 | tee -a $LOGS_FILE
+  echo -e "\`\$ helm get all ${controller_name} -n ${controller_namespace}\`\n" 2>&1 | tee -a $LOGS_FILE
   helm get all ${controller_name} -n ${controller_namespace} | sed -e 's/\(github_token:\).*/\1 REDACTED/' -e 's/\(github_app_private_key:\).*/\1 REDACTED/' > ${all_file}
 done
 
+# POLL EPHEMERAL RUNNER PODS IN ALL NAMESPACES
+echo -e "\n## Polling \`ephemeralrunner\` Pods (${DELAY}s x ${POLL_COUNT})\n" 2>&1 | tee -a $LOGS_FILE
+if [ ${POLL_COUNT} -le 0 -o ${DELAY} -le 0 ]; then
+    echo "Skipping polling of ephemeralrunner pods because POLL_COUNT or DELAY is set to 0." 2>&1 | tee -a $LOGS_FILE
+else
+  for i in $(seq 1 $POLL_COUNT); do
+      echo -e "### Listing ephemeral runner pods ($i/$POLL_COUNT at $(date -u)):\n" 2>&1 | tee -a $LOGS_FILE
+      echo '```' >> $LOGS_FILE
+      echo -e "\$ kubectl get ephemeralrunners --all-namespaces\n" 2>&1 | tee -a $LOGS_FILE
+      kubectl get ephemeralrunners --all-namespaces 2>&1 2>&1 | tee -a $LOGS_FILE
+      echo '```' >> $LOGS_FILE
+      echo | tee -a $LOGS_FILE
+      sleep $DELAY
+  done
+fi
+
+# LOG COLLECTION
 echo -e "\n## Writing logs for pods" 2>&1 | tee -a $LOGS_FILE
+
+# WRITE LOGS FOR RUNNER PODS
 echo -e "\n### Writing logs for runner pods" 2>&1 | tee -a $LOGS_FILE
 # Get a list of all runner pods
 runner_pods=$(kubectl get ephemeralrunners --all-namespaces -o jsonpath="{.items[*].metadata.name}")
@@ -187,17 +208,22 @@ for pod in $runner_pods; do
   echo -e "Writing log: \`${pod_log}\`...\n" 2>&1 | tee -a $LOGS_FILE
   namespace=$(kubectl get ephemeralrunners --all-namespaces -o jsonpath="{.items[?(@.metadata.name == '${pod}')].metadata.namespace}")
   # Get more information from runner pods.
-
   echo -e "Runner pod labels:" 2>&1 | tee -a $LOGS_FILE
   echo '```' >> $LOGS_FILE
+  echo -e "\$ kubectl get pod ${pod} -n ${namespace} -o jsonpath='{.metadata.labels}'\n" 2>&1 | tee -a $LOGS_FILE
   kubectl get pod ${pod} -n ${namespace} -o jsonpath='{.metadata.labels}' 2>&1 | jq . 2>&1 | tee -a $LOGS_FILE
   echo '```' >> $LOGS_FILE
   echo -e "Dumping pod meta to ${meta_dump}..."
+  echo -e "\`\$ kubectl describe pod ${pod} -n ${namespace}\`\n" 2>&1 | tee -a $LOGS_FILE
   kubectl describe pod ${pod} -n ${namespace} > ${meta_dump}
   echo -e "Dumping pod meta to ${meta_yaml_dump}..."
+  echo -e "\`\$ kubectl get pod ${pod} -n ${namespace} -o yaml\`\n" 2>&1 | tee -a $LOGS_FILE
   kubectl get pod ${pod} -n ${namespace} -o yaml > ${meta_yaml_dump}
-  echo -e "Tailing logs for ${pod} in ${namespace} until dead or timeout (${RUNNER_LOG_TIMEOUT}s)" 2>&1 | tee -a $LOGS_FILE
-  (kubectl logs $pod -n $namespace --tail=-1 -f 2>&1 > ${pod_log}) &
+  echo -e "Tailing logs for ${pod} in ${namespace} until dead or timeout (${RUNNER_LOG_TIMEOUT}s)\n" 2>&1 | tee -a $LOGS_FILE
+  echo -e "\`\$ kubectl logs ${pod} -n ${namespace} --tail=-1 -f 2>&1 > ${pod_log}\`\n" 2>&1 | tee -a $LOGS_FILE
+
+  # Tail logs for the runner pod until it is dead or the timeout is reached.
+  (kubectl logs ${pod} -n ${namespace} --tail=-1 -f 2>&1 > ${pod_log}) &
   LOG_PID=$!
 
   while true; do
@@ -212,9 +238,11 @@ for pod in $runner_pods; do
     if [ $RUNNER_LOG_TIMEOUT -le 0 ]; then
       # Timeout has been reached
       if ps -p $LOG_PID -o comm= | grep -q "^kubectl logs$"; then
+        echo -e "Killing log tailing process\n" | tee -a $LOGS_FILE
+        echo -e "\`\$ kill $LOG_PID\`\n" 2>&1 | tee -a $LOGS_FILE
         kill $LOG_PID
       fi
-      echo -e "Monitoring runner pod log has timed out\n" | tee -a $LOGS_FILE
+      echo -e "Monitoring runner pod ${pod} log has timed out\n" | tee -a $LOGS_FILE
       break
     fi
     RUNNER_LOG_TIMEOUT=$((RUNNER_LOG_TIMEOUT-1))
@@ -224,6 +252,7 @@ for pod in $runner_pods; do
   continue
 done
 
+# WRITE LOGS FOR ALL PODS IN ALL NAMESPACES
 echo -e "\n### Writing logs for all pods in all namespaces\n" 2>&1 | tee -a $LOGS_FILE
 # Get a list of all namespaces
 namespaces=$(kubectl get ns -o jsonpath="{.items[*].metadata.name}")
@@ -241,7 +270,7 @@ for namespace in $namespaces; do
     meta_dump="${POD_LOGS_DIR}/${pod}_NS_${namespace}_meta.txt"
     meta_yaml_dump="${POD_LOGS_DIR}/${pod}_NS_${namespace}_meta.yaml"
     echo -e "Writing log: \`${pod_log}\`...\n" 2>&1 | tee -a $LOGS_FILE
-    
+    echo -e "\`\$ kubectl describe pod ${pod} -n ${namespace}\`\n" 2>&1 | tee -a $LOGS_FILE
     kubectl logs $pod -n $namespace 2>&1 > ${pod_log}
     # Check for errors in the pod log
     pod_errors=$(grep -i -n " error " ${pod_log})
@@ -253,6 +282,7 @@ for namespace in $namespaces; do
     echo -e "${pod_error_count} ERRORs found in ${pod_log}\n" 2>&1 | tee -a $LOGS_FILE
     echo -e "last 10 ERROR lines found in ${pod_log}:\n" 2>&1 | tee -a $LOGS_FILE
     echo '```' >> $LOGS_FILE
+    echo -e "\`\$ grep -i -n \" error \" ${pod_log} | tail -10\`\n" 2>&1 | tee -a $LOGS_FILE
     echo -e "${pod_errors}\n" | tail -10 2>&1 | tee -a $LOGS_FILE
     echo '```' >> $LOGS_FILE
     echo -e | tee -a $LOGS_FILE
@@ -260,4 +290,5 @@ for namespace in $namespaces; do
 done
 
 echo -e "\n### Compressing logs directory to $(date +%Y-%m-%d-%H-%M)-${LOGS_DIR}.tgz\n" 2>&1 | tee -a $LOGS_FILE
+echo -e "\`\$ tar -czf $LOGS_TGZ ${LOGS_DIR}\`\n" 2>&1 | tee -a $LOGS_FILE
 tar -czf $LOGS_TGZ ${LOGS_DIR}

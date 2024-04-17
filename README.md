@@ -19,6 +19,7 @@ The ARC Log Bundle consists of the following components:
         - 📂 `[PODNAME]`\_NS\_`[NAMESPACE]`.log
         - 📂 `[PODNAME]`\_NS\_`[NAMESPACE]`\_meta.txt
         - 📂 `[PODNAME]`\_NS\_`[NAMESPACE]`\_meta.yaml
+    - 📂 kubectl-events.log
     - 📂 bundle.md
 
 ## Anatomy of the Runner Monitor Log Directory
